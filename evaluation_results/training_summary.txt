@@ -1,0 +1,9 @@
+TRAINING SUMMARY
+================================================================================
+
+Total epochs:        65
+Best epoch:          65
+Best val loss:       0.001058
+Final train loss:    0.001614
+Final val loss:      0.001058
+Final overfitting:   -0.000556
