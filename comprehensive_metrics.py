@@ -10,6 +10,8 @@ Metrics Included:
 - Heatmaps of gaze distribution
 - Learning curves with confidence intervals
 
+python comprehensive_metrics.py --checkpoint ./itracker_checkpoints/best_itracker.pth --test_data ./diagnostic_gaze_data/test_metadata.json --output_dir ./itracker_evaluation_results
+
 python comprehensive_metrics.py --checkpoint ./max_regularized_checkpoints/best_max_regularized.pth --test_data ./diagnostic_gaze_data/test_metadata.json --checkpoint_dir ./max_regularized_checkpoints --output_dir ./evaluation_results --batch_size 64
 python comprehensive_metrics.py --checkpoint ./max_regularized_checkpoints/best_max_regularized.pth --test_data ./diagnostic_gaze_data/test_metadata.json
 Usage:
