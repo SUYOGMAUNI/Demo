@@ -22,10 +22,7 @@ Expected Performance:
 - Training time: 2-3 hours on single GPU
 
 Usage:
-    python mpiigaze_training.py --train_data ./MPIIGaze/train_metadata.json \
-                                --val_data ./MPIIGaze/val_metadata.json \
-                                --checkpoint_dir ./mpiigaze_checkpoints \
-                                --epochs 100 --batch_size 64
+    python fixtrain.py --train_data ./processed_gaze_data/train_metadata.json --val_data ./processed_gaze_data/val_metadata.json --checkpoint_dir ./checkpoints --epochs 100 --batch_size 64
 """
 
 import torch
@@ -1336,3 +1333,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+
