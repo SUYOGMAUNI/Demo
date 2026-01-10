@@ -287,12 +287,21 @@ class MPIIGazeDataset(Dataset):
         super().__init__()
 
         # Load metadata
+        metadata_path = Path(metadata_path)  # ADD THIS
         with open(metadata_path, 'r') as f:
             metadata = json.load(f)
 
         self.samples = metadata['samples']
+        self.base_path = metadata_path.parent  # ADD THIS - for resolving relative paths
         self.augment = augment
         self.image_size = image_size
+
+        # Validate coordinate system
+        coord_system = metadata.get('coordinate_system', 'angles')
+        if coord_system != 'angles':
+            raise ValueError(f"Expected 'angles' coordinate system, got '{coord_system}'")
+
+        logger.info(f"Dataset format: {metadata.get('gaze_description', 'unknown')}")
 
         # Setup augmenter
         if config is None:
@@ -327,12 +336,12 @@ class MPIIGazeDataset(Dataset):
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         sample = self.samples[idx]
 
-        # Load images
-        left = self._load_image(sample['left_eye_path'])
-        right = self._load_image(sample['right_eye_path'])
-        face = self._load_image(sample['face_path'])
+        # Load images (resolve relative paths)
+        left = self._load_image(str(self.base_path / sample['left_eye_path']))
+        right = self._load_image(str(self.base_path / sample['right_eye_path']))
+        face = self._load_image(str(self.base_path / sample['face_path']))
 
-        # Load labels (in radians)
+        # Load labels in radians [pitch, yaw] - matches MPIIGaze format
         gaze = np.array(sample['gaze'], dtype=np.float32)  # [pitch, yaw]
         head_pose = np.array(sample['head_pose'], dtype=np.float32)  # [pitch, yaw]
 
@@ -354,7 +363,7 @@ class MPIIGazeDataset(Dataset):
             'face': self._to_tensor(face),
             'head_pose': torch.FloatTensor(head_pose),
             'gaze': torch.FloatTensor(gaze),
-            'sample_id': sample.get('id', str(idx))
+            'sample_id': sample.get('sample_id', f"sample_{idx}")  # FIX: use 'sample_id'
         }
 
 
