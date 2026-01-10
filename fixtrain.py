@@ -22,7 +22,10 @@ Expected Performance:
 - Training time: 2-3 hours on single GPU
 
 Usage:
-    python fixtrain.py --train_data ./processed_gaze_data/train_metadata.json --val_data ./processed_gaze_data/val_metadata.json --checkpoint_dir ./checkpoints --epochs 100 --batch_size 64
+    start
+    python fixtrain.py --train_data ./processed_gaze_data/train_metadata.json --val_data ./processed_gaze_data/val_metadata.json --checkpoint_dir ./checkpoints --epochs 100 --batch_size 64 --lr 0.001
+    resume
+    python fixtrain.py --train_data ./processed_gaze_data/train_metadata.json --val_data ./processed_gaze_data/val_metadata.json --checkpoint_dir ./checkpoints --resume --epochs 100 --batch_size 64 --lr 0.001
 """
 
 import torch
@@ -935,6 +938,9 @@ class MPIIGazeTrainer:
         metrics['angular_std'] = np.std(all_angular_errors)
         metrics['angular_min'] = np.min(all_angular_errors)
         metrics['angular_max'] = np.max(all_angular_errors)
+        for threshold in [2.0, 3.0, 5.0, 10.0]:
+            accuracy = np.mean(all_angular_errors < threshold) * 100
+            metrics[f'acc@{threshold}deg'] = accuracy
 
         return dict(metrics)
 
@@ -967,6 +973,71 @@ class MPIIGazeTrainer:
 
             logger.info(f"✅ Saved best model: {self.best_val_angular:.3f}°")
 
+    def save_metrics_report(self):
+        """Save training summary to text file"""
+        text_report_path = self.checkpoint_dir / 'training_summary.txt'
+
+        best_epoch = int(np.argmin(self.val_metrics['angular_error']) + 1)
+
+        with open(text_report_path, 'w') as f:
+            f.write("=" * 70 + "\n")
+            f.write("MPIIGAZE TRAINING SUMMARY\n")
+            f.write("=" * 70 + "\n\n")
+
+            f.write("TRAINING INFORMATION\n")
+            f.write("-" * 70 + "\n")
+            f.write(f"Total Epochs:              {self.current_epoch + 1}\n")
+            f.write(f"Best Epoch:                {best_epoch}\n")
+            f.write(f"Best Validation Error:     {self.best_val_angular:.3f}°\n")
+            f.write(f"Final Train Error:         {self.train_metrics['angular_error'][-1]:.3f}°\n")
+            f.write(f"Final Validation Error:    {self.val_metrics['angular_error'][-1]:.3f}°\n\n")
+
+            f.write("HYPERPARAMETERS\n")
+            f.write("-" * 70 + "\n")
+            f.write(f"Batch Size:                {self.config.get('batch_size')}\n")
+            f.write(f"Learning Rate:             {self.config.get('learning_rate')}\n")
+            f.write(f"Weight Decay:              {self.config.get('weight_decay')}\n")
+            f.write(f"Dropout Rate:              {self.config.get('dropout_rate')}\n")
+            f.write(f"Angular Loss Weight:       {self.angular_weight}\n")
+            f.write(f"Total Epochs:              {self.config.get('epochs')}\n")
+            f.write(f"Patience:                  {self.config.get('patience')}\n\n")
+
+            f.write("FINAL VALIDATION METRICS\n")
+            f.write("-" * 70 + "\n")
+            f.write(f"Mean Angular Error:        {self.val_metrics['angular_error'][-1]:.3f}°\n")
+            f.write(f"Median Angular Error:      {self.val_metrics['angular_median'][-1]:.3f}°\n")
+            f.write(f"95th Percentile:           {self.val_metrics['angular_p95'][-1]:.3f}°\n")
+            f.write(f"Standard Deviation:        {self.val_metrics['angular_std'][-1]:.3f}°\n")
+            f.write(f"Min Error:                 {self.val_metrics['angular_min'][-1]:.3f}°\n")
+            f.write(f"Max Error:                 {self.val_metrics['angular_max'][-1]:.3f}°\n")
+            f.write(f"MSE Loss:                  {self.val_metrics['mse_loss'][-1]:.6f}\n\n")
+
+            # Accuracy metrics if available
+            if 'acc@2.0deg' in self.val_metrics:
+                f.write("ACCURACY METRICS (% of predictions within threshold)\n")
+                f.write("-" * 70 + "\n")
+                f.write(f"Within   2°:               {self.val_metrics['acc@2.0deg'][-1]:6.2f}%\n")
+                f.write(f"Within   3°:               {self.val_metrics['acc@3.0deg'][-1]:6.2f}%\n")
+                f.write(f"Within   5°:               {self.val_metrics['acc@5.0deg'][-1]:6.2f}%\n")
+                f.write(f"Within  10°:               {self.val_metrics['acc@10.0deg'][-1]:6.2f}%\n\n")
+
+            f.write("TRAINING PROGRESS\n")
+            f.write("-" * 70 + "\n")
+            f.write(f"Epoch    Train Loss    Val Loss    Train Error    Val Error\n")
+            f.write("-" * 70 + "\n")
+            for i in range(len(self.train_metrics['loss'])):
+                f.write(f"{i + 1:5d}    "
+                        f"{self.train_metrics['loss'][i]:10.6f}    "
+                        f"{self.val_metrics['loss'][i]:8.6f}    "
+                        f"{self.train_metrics['angular_error'][i]:11.3f}°    "
+                        f"{self.val_metrics['angular_error'][i]:9.3f}°\n")
+
+            f.write("\n" + "=" * 70 + "\n")
+            f.write(f"Checkpoint Directory: {self.checkpoint_dir}\n")
+            f.write(f"Best Model Saved:     best_model.pth\n")
+            f.write("=" * 70 + "\n")
+
+        logger.info(f"📄 Saved training summary: {text_report_path}")
     def load_checkpoint(self, checkpoint_path: Optional[str] = None) -> bool:
         """Load training checkpoint"""
         if checkpoint_path is None:
@@ -1148,6 +1219,10 @@ class MPIIGazeTrainer:
                         f"Std: {val_metrics['angular_std']:.3f}°")
             logger.info(f"        Range: [{val_metrics['angular_min']:.2f}°, "
                         f"{val_metrics['angular_max']:.2f}°]")
+            if 'acc@5.0deg' in val_metrics:
+                logger.info(f"        Accuracy: <2°={val_metrics['acc@2.0deg']:.1f}%, "
+                            f"<5°={val_metrics['acc@5.0deg']:.1f}%, "
+                            f"<10°={val_metrics['acc@10.0deg']:.1f}%")
             logger.info(f"Best  - Angular: {self.best_val_angular:.3f}° "
                         f"{'🎉 NEW!' if is_best else ''}")
             logger.info(f"LR: {current_lr:.6f}, Patience: {self.patience_counter}/{patience}")
@@ -1160,6 +1235,7 @@ class MPIIGazeTrainer:
             if (epoch + 1) % 10 == 0:
                 self.plot_training_curves()
 
+
             # Early stopping
             if early_stop and self.patience_counter >= patience:
                 logger.info(f"\n⚠️  Early stopping at epoch {epoch + 1}")
@@ -1167,6 +1243,8 @@ class MPIIGazeTrainer:
 
         # Final plot
         self.plot_training_curves()
+        # Save text report
+        self.save_metrics_report()
 
         logger.info(f"\n{'=' * 70}")
         logger.info("✅ Training Completed!")
@@ -1333,4 +1411,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
