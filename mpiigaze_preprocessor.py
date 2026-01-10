@@ -1,3 +1,6 @@
+""
+python mpiigaze_preprocessor.py --data_dir ./MPIIGaze/Data --output_dir ./processed_gaze_data --image_size 224
+""
 import numpy as np
 import cv2
 from scipy.io import loadmat
