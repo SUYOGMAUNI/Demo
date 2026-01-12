@@ -20,7 +20,7 @@ Dataset Format:
 Expected Performance:
 - Mean Angular Error: 4.5-5.5° (state-of-the-art: ~4.3°)
 - Training time: 2-3 hours on single GPU
-
+python fixtrain.py --train_data ./processed_data/train_metadata.json --val_data ./processed_data/val_metadata.json --checkpoint_dir ./checkpoints --resume --epochs 100 --batch_size 64 --lr 0.001 --dropout 0.4 --angular_weight 0.5
 Usage:
     start
     python fixtrain.py --train_data ./processed_gaze_data/train_metadata.json --val_data ./processed_gaze_data/val_metadata.json --checkpoint_dir ./checkpoints --epochs 100 --batch_size 64 --lr 0.001
@@ -1410,4 +1410,5 @@ def main():
 
 
 if __name__ == '__main__':
+
     main()
