@@ -1,5 +1,5 @@
 """
-Plot Accuracy Curve Only - Up to Epoch 45
+Plot Loss Curves Only - Up to Epoch 45
 """
 
 import torch
@@ -8,90 +8,75 @@ import numpy as np
 from pathlib import Path
 
 # Configuration
-CHECKPOINT_DIR = Path('./checkpoints')
+CHECKPOINT_DIR = Path('./checkpoints_old')
 STOP_EPOCH = 45
 
 # Load checkpoint
 checkpoint = torch.load(CHECKPOINT_DIR / 'latest_checkpoint.pth', map_location='cpu')
 
-# Get accuracy metrics (up to epoch 45)
-val_metrics = checkpoint['val_metrics']
-
-# Check what accuracy metrics are available
-acc_keys = [k for k in val_metrics.keys() if 'acc@' in k]
-print(f"Available accuracy metrics: {acc_keys}")
-
-if not acc_keys:
-    print("❌ No accuracy metrics found in checkpoint!")
-    print("Run training with the updated validate() method first.")
-    exit()
+# Get loss metrics (up to epoch 45)
+train_loss = checkpoint['train_metrics']['loss'][:STOP_EPOCH]
+val_loss = checkpoint['val_metrics']['loss'][:STOP_EPOCH]
 
 epochs = range(1, STOP_EPOCH + 1)
 
 # Create figure
 fig, ax = plt.subplots(figsize=(10, 6))
 
-# Colors for different thresholds
-colors = {
-    'acc@2.0deg': '#e74c3c',   # Red
-    'acc@3.0deg': '#f39c12',   # Orange
-    'acc@5.0deg': '#2ecc71',   # Green
-    'acc@10.0deg': '#3498db'   # Blue
-}
-
-labels = {
-    'acc@2.0deg': '< 2°',
-    'acc@3.0deg': '< 3°',
-    'acc@5.0deg': '< 5°',
-    'acc@10.0deg': '< 10°'
-}
-
-# Plot each accuracy threshold
-for key in acc_keys:
-    if key in val_metrics:
-        acc_values = val_metrics[key][:STOP_EPOCH]
-        color = colors.get(key, 'gray')
-        label = labels.get(key, key)
-        
-        # Removed marker='o' and markersize=4
-        ax.plot(epochs, acc_values, linewidth=2.5, 
-                label=label, color=color, alpha=0.8)
+# Plot training and validation loss
+ax.plot(epochs, train_loss, linewidth=2.5, 
+        label='Training Loss', color='#e74c3c', alpha=0.8)
+ax.plot(epochs, val_loss, linewidth=2.5, 
+        label='Validation Loss', color='#3498db', alpha=0.8)
 
 ax.set_xlabel('Epoch', fontsize=14, fontweight='bold')
-ax.set_ylabel('Accuracy (%)', fontsize=14, fontweight='bold')
-ax.set_title('Gaze Estimation Accuracy (Epochs 1-45)', 
+ax.set_ylabel('Loss', fontsize=14, fontweight='bold')
+ax.set_title('Training and Validation Loss (Epochs 1-45)', 
              fontsize=16, fontweight='bold')
-ax.legend(fontsize=12, framealpha=0.9, loc='lower right')
+ax.legend(fontsize=12, framealpha=0.9, loc='upper right')
 ax.grid(True, alpha=0.3, linestyle='--')
 ax.set_xlim([1, STOP_EPOCH])
-ax.set_ylim([0, 105])
+
+# Set y-axis to start from 0 for better visualization
+ymin = min(min(train_loss), min(val_loss))
+ymax = max(max(train_loss), max(val_loss))
+ax.set_ylim([ymin * 0.9, ymax * 1.1])
 
 # Add text box with final values
-if acc_keys:
-    final_text = "Final Accuracy (Epoch 45):\n"
-    for key in sorted(acc_keys):
-        if key in val_metrics:
-            final_val = val_metrics[key][STOP_EPOCH - 1]
-            label = labels.get(key, key)
-            final_text += f"  {label:6s}: {final_val:5.1f}%\n"
-    
-    ax.text(0.02, 0.98, final_text, transform=ax.transAxes,
-            fontsize=11, verticalalignment='top', family='monospace',
-            bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
+final_text = "Final Loss Values (Epoch 45):\n"
+final_text += f"  Training:   {train_loss[-1]:.4f}\n"
+final_text += f"  Validation: {val_loss[-1]:.4f}"
+
+ax.text(0.02, 0.98, final_text, transform=ax.transAxes,
+        fontsize=11, verticalalignment='top', family='monospace',
+        bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.8))
 
 plt.tight_layout()
 
 # Save
-output_file = CHECKPOINT_DIR / 'accuracy_curve_epoch45.png'
+output_file = CHECKPOINT_DIR / 'loss_curves_epoch45.png'
 plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
-print(f"\n✅ Saved accuracy plot to: {output_file}")
+print(f"\n✅ Saved loss plot to: {output_file}")
 
 # Also show final values
-print(f"\n📊 Final Accuracy Values (Epoch {STOP_EPOCH}):")
+print(f"\n📊 Final Loss Values (Epoch {STOP_EPOCH}):")
 print("=" * 40)
-for key in sorted(acc_keys):
-    if key in val_metrics:
-        final_val = val_metrics[key][STOP_EPOCH - 1]
-        label = labels.get(key, key)
-        print(f"  {label:10s}: {final_val:6.2f}%")
+print(f"  Training Loss:   {train_loss[-1]:.6f}")
+print(f"  Validation Loss: {val_loss[-1]:.6f}")
+print("=" * 40)
+
+# Optional: Show statistics
+print(f"\n📈 Loss Statistics (Epochs 1-{STOP_EPOCH}):")
+print("=" * 40)
+print(f"Training Loss:")
+print(f"  Min:    {min(train_loss):.6f}")
+print(f"  Max:    {max(train_loss):.6f}")
+print(f"  Avg:    {np.mean(train_loss):.6f}")
+print(f"  Std:    {np.std(train_loss):.6f}")
+print()
+print(f"Validation Loss:")
+print(f"  Min:    {min(val_loss):.6f}")
+print(f"  Max:    {max(val_loss):.6f}")
+print(f"  Avg:    {np.mean(val_loss):.6f}")
+print(f"  Std:    {np.std(val_loss):.6f}")
 print("=" * 40)
