@@ -1,5 +1,5 @@
 """
-Plot Accuracy Curve Only - Up to Epoch 46
+Plot Accuracy Curve Only - Up to Epoch 45
 """
 
 import torch
@@ -14,7 +14,7 @@ STOP_EPOCH = 45
 # Load checkpoint
 checkpoint = torch.load(CHECKPOINT_DIR / 'latest_checkpoint.pth', map_location='cpu')
 
-# Get accuracy metrics (up to epoch 46)
+# Get accuracy metrics (up to epoch 45)
 val_metrics = checkpoint['val_metrics']
 
 # Check what accuracy metrics are available
@@ -53,9 +53,9 @@ for key in acc_keys:
         color = colors.get(key, 'gray')
         label = labels.get(key, key)
         
+        # Removed marker='o' and markersize=4
         ax.plot(epochs, acc_values, linewidth=2.5, 
-                label=label, color=color, marker='o', 
-                markersize=4, alpha=0.8)
+                label=label, color=color, alpha=0.8)
 
 ax.set_xlabel('Epoch', fontsize=14, fontweight='bold')
 ax.set_ylabel('Accuracy (%)', fontsize=14, fontweight='bold')
@@ -82,7 +82,7 @@ if acc_keys:
 plt.tight_layout()
 
 # Save
-output_file = CHECKPOINT_DIR / 'accuracy_curve_epoch46.png'
+output_file = CHECKPOINT_DIR / 'accuracy_curve_epoch45.png'
 plt.savefig(output_file, dpi=300, bbox_inches='tight', facecolor='white')
 print(f"\n✅ Saved accuracy plot to: {output_file}")
 
