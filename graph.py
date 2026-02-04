@@ -9,7 +9,7 @@ from pathlib import Path
 
 # Configuration
 CHECKPOINT_DIR = Path('./checkpoints')
-STOP_EPOCH = 46
+STOP_EPOCH = 45
 
 # Load checkpoint
 checkpoint = torch.load(CHECKPOINT_DIR / 'latest_checkpoint.pth', map_location='cpu')
@@ -59,7 +59,7 @@ for key in acc_keys:
 
 ax.set_xlabel('Epoch', fontsize=14, fontweight='bold')
 ax.set_ylabel('Accuracy (%)', fontsize=14, fontweight='bold')
-ax.set_title('Gaze Estimation Accuracy (Epochs 1-46)', 
+ax.set_title('Gaze Estimation Accuracy (Epochs 1-45)', 
              fontsize=16, fontweight='bold')
 ax.legend(fontsize=12, framealpha=0.9, loc='lower right')
 ax.grid(True, alpha=0.3, linestyle='--')
@@ -68,7 +68,7 @@ ax.set_ylim([0, 105])
 
 # Add text box with final values
 if acc_keys:
-    final_text = "Final Accuracy (Epoch 46):\n"
+    final_text = "Final Accuracy (Epoch 45):\n"
     for key in sorted(acc_keys):
         if key in val_metrics:
             final_val = val_metrics[key][STOP_EPOCH - 1]
