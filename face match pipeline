@@ -22,6 +22,7 @@ All checks including timestamp, match status (match or mismatch), Euclidean dist
 
 
 new
+CLAHE Contrast Limited Adaptive Histogram Equalization
 
 
 Face Match Pipeline Using Dlib:
