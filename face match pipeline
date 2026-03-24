@@ -1,9 +1,13 @@
 Face Match Pipeline Using Dlib:
-This pipeline verifies the student's identity in real time during an online exam using Dlib's HOG-based frontal face detector for face detection and Dlib's ResNet-based face recognition model for identity matching. This approach offers good accuracy, is efficient on CPU, and performs well even under variable lighting conditions through CLAHE-based image enhancement. All identity checks, including timestamps, match results, and face crops (if mismatched), are logged in a secure database for audit.
+This pipeline verifies the student's identity in real time during an online exam using Dlib's HOG-based frontal face detector for face detection and Dlib's ResNet-based face recognition model for identity matching. 
+This approach offers good accuracy, is efficient on CPU, and performs well even under variable lighting conditions. All identity checks, including timestamps, match results, and face crops (if mismatched), are logged in a secure database for audit.
 i. Webcam Frame Capture
-Frames are continuously captured from the student's webcam for identity verification throughout the exam. To improve processing speed,  every frame is passed through face detection, while cached results are used for intermediate frames.
+Frames are continuously captured from the student's webcam for identity verification throughout the exam. 
+To improve processing speed,  every frame is passed through face detection, while cached results are used for intermediate frames.
 ii. Face Detection Using Dlib HOG Detector
-Every sampled frame is first enhanced and applied in the LAB color space to normalize lighting conditions. The enhanced frame is then passed through Dlib's HOG-based frontal face detector with one upsample pass to improve detection of smaller or more distant faces. If no face is detected, the absence is logged with a timestamp and monitoring continues. If one or more faces are detected, the bounding box coordinates are scaled back to the original frame resolution for further processing.
+Every sampled frame is first enhanced and applied in the LAB color space to normalize lighting conditions. 
+The enhanced frame is then passed through Dlib's HOG-based frontal face detector with one upsample pass to improve detection of smaller or more distant faces.
+If no face is detected, the absence is logged with a timestamp and monitoring continues. If one or more faces are detected, the bounding box coordinates are scaled back to the original frame resolution for further processing.
 iii. Multiple Person Detection
 The pipeline checks the number of detected faces in the frame. If more than one face is detected, the event is treated as a multi-person violation. A timestamped frame with an on-screen warning overlay is saved, the violation is logged with a warning number, the event is stored in the database, and a critical alert is raised if the multi-person warning count reaches the predefined threshold.
 iv. Face Embedding Generation (Dlib ResNet)
@@ -14,3 +18,46 @@ vi. Continuous or Periodic Identity Check
 Face matching is performed periodically every 5 seconds rather than on every frame, balancing monitoring reliability with computational efficiency. Face detection for multi-person checks, however, runs continuously on every sampled frame.
 vii. Logging and Audit Trail
 All checks including timestamp, match status (match or mismatch), Euclidean distance, number of faces detected, and cropped face image path (for mismatches) are recorded in the database. This enables reliable post-exam review and strengthens academic integrity.
+
+
+
+new
+
+
+Face Match Pipeline Using Dlib:
+
+This pipeline verifies the student's identity in real time during an online exam using Dlib's HOG-based frontal face detector for face detection and 
+Dlib's ResNet-based face recognition for identity matching. 
+This approach offers good accuracy, is efficient on CPU, and performs well even under variable lighting and pose conditions. 
+All identity checks, including timestamps, match results and face crops (if mismatched), are logged in a secure database for audit.
+
+i. Webcam Frame Capture
+
+Frames are continuously captured from the student's webcam for identity verification throughout the exam.
+
+ii. Face Detection Using Dlib HOG Detector
+
+Every frame is passed through Dlib's HOG-based frontal face detector, which detects faces and provides bounding box coordinates.
+Before detection, CLAHE is applied in the LAB color space to normalize lighting conditions.
+
+If no face is detected, the absence is logged with timestamp, and monitoring is continued.
+
+If a face is detected, the cropped face ROI is extracted using the bounding box and passed to the embedding generator.
+
+iii. Face Embedding Generation (Dlib ResNet)
+
+The cropped and aligned face is passed to Dlib's ResNet-based face recognition model to generate a 128D face embedding that encodes the person's identity.
+The same is done with the pre-registered reference image (from enrollment). Both embeddings are then compared.
+
+iv. Face Matching and Verification
+Compute Euclidean distance between the live face embedding and the registered embedding. 
+If distance ≤ threshold (typically 0.6) the identity is verified successfully and the monitoring continues. If distance > threshold, 
+the system logs the mismatch event with timestamp, saves the cropped face for review and raises a warning to the proctor.
+
+v. Continuous or Periodic Identity Check
+
+Face match is done periodically every CHECK_INTERVAL seconds for enhanced security.
+
+vi. Logging and Audit Trail
+
+All checks including timestamp, match status (pass/fail) and cropped face image (for mismatches) are recorded. This enables reliable post-exam review and strengthens academic integrity.
